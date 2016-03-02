@@ -1,4 +1,13 @@
 #lang plai-typed
+
+
+;;This formal grammar is supposed to accept or parse only the "strings" that are in newely defined language (nwl) 
+
+;;S--> (+ S S) | (- S S) | (* S S) | (** S S) | (- S) |(if (S)(S)(S))| F(e) | [0-9]*
+;;F(x) -->  f  F(x)| f subst( S x S)
+;;subst( S x S) --> S
+
+;;e represents an empty string
 ;;Data definition oldl (old language)
 ;;nwl is a number or it is a 
 ;;addition of two oldl
@@ -33,6 +42,35 @@
     ((= p 1) t)
     (else
     (* t(**(- p 1) t)))))
+
+;;get-funcdef symbol, listof function definitios -> function definition
+
+(define(get-functdef [n : symbol] [funcdefs : (listof functionDef)]) : functionDef
+  (cond
+    [(empty? funcdefs)(error 'get-functdef "references to undefined function")]
+    [(cons? funcdefs) (cond
+                        [(equal? n (funcd-name (first funcdefs)))(first funcdefs)]
+                        [else (get-functdef n (rest funcdefs))])]))
+
+
+
+;;subst oldl, symbol, oldl -> oldl
+;;subst is in charge of substituting (replacing) the formal parameter by the actual parameter
+;;so that interpreter is able to perform (execute / calculate) the operation on value that is passed to the function
+
+(define(subst [what : oldl][for : symbol][in : oldl]) : oldl
+  (type-case oldl in
+    [oldl-num (n) in]
+    [oldl-identf (sim) (cond
+                        [(symbol=? sim for) what]
+                        [else in])]
+    [oldl-applic (funct argument) (oldl-applic funct (subst what for argument))]
+    [oldl-add (lt rt) (oldl-add (subst what for lt) (subst what for rt))]
+    [oldl-sub (lt rt) (oldl-sub (subst what for lt) (subst what for rt))]
+    [oldl-mul (lt rt) (oldl-mul (subst what for lt) (subst what for rt))]
+    [oldl-exp (lt rt) (oldl-add (subst what for lt) (subst what for rt))]
+    [if-grater-than-zero (req t f)(if-grater-than-zero(subst what for req)(subst what for t)(subst what for f))]))
+
 
 ;;parser s-expression -> oldl
 ;;parses an s-expression but this time it parses function identifier, function application and if-grater-than-zero
@@ -125,6 +163,8 @@
 (interpreter (oldl-exp (oldl-add (oldl-num 2) (oldl-num 3)) (oldl-sub (oldl-num 3) (oldl-num 1))) empty)
 (interpreter (parse '(+ 3 4)) empty)
 (interpreter (parse (number->s-exp 3)) empty)
+(test (parse '(f (* x x)))(oldl-applic 'f (oldl-mul (oldl-identf 'x)(oldl-identf 'x))))
+
 
 "Tests"
 (test(interpreter (oldl-num 7) empty) 7)
@@ -137,32 +177,6 @@
 
 
 
-;;get-funcdef symbol, listof function definitios -> function definition
 
-(define(get-functdef [n : symbol] [funcdefs : (listof functionDef)]) : functionDef
-  (cond
-    [(empty? funcdefs)(error 'get-functdef "references to undefined function")]
-    [(cons? funcdefs) (cond
-                        [(equal? n (funcd-name (first funcdefs)))(first funcdefs)]
-                        [else (get-functdef n (rest funcdefs))])]))
-
-
-
-;;subst oldl, symbol, oldl -> oldl
-;;subst is in charge of substituting (replacing) the formal parameter by the actual parameter
-;;so that interpreter is able to perform (execute / calculate) the operation on value that is passed to the function
-
-(define(subst [what : oldl][for : symbol][in : oldl]) : oldl
-  (type-case oldl in
-    [oldl-num (n) in]
-    [oldl-identf (sim) (cond
-                        [(symbol=? sim for) what]
-                        [else in])]
-    [oldl-applic (funct argument) (oldl-applic funct (subst what for argument))]
-    [oldl-add (lt rt) (oldl-add (subst what for lt) (subst what for rt))]
-    [oldl-sub (lt rt) (oldl-sub (subst what for lt) (subst what for rt))]
-    [oldl-mul (lt rt) (oldl-mul (subst what for lt) (subst what for rt))]
-    [oldl-exp (lt rt) (oldl-add (subst what for lt) (subst what for rt))]
-    [if-grater-than-zero (req t f)(if-grater-than-zero(subst what for req)(subst what for t)(subst what for f))]))
 
 
